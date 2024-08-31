@@ -32,7 +32,7 @@ const Home: NextPage = () => {
     if (isCheckAuthenticityError) {
       notification.error(checkAuthenticityError?.message || "Something went wrong");
     }
-  }, [checkAuthenticityError?.message, isCheckAuthenticityError]);
+  }, [isCheckAuthenticityError]);
 
   return (
     <>
@@ -69,7 +69,7 @@ const Home: NextPage = () => {
             </button>
           </div>
           {checkAuthenticityData?.name && (
-            <div className="flex flex-col bg-base-100 px-10 py-10 text-center items-center max-w-lg rounded-3x overflow-auto my-5l">
+            <div className="flex flex-col bg-base-100 px-10 py-10 text-center items-center max-w-lg rounded-3x overflow-auto my-5">
               <p>Name: {checkAuthenticityData.name}</p>
               <p>Production Date: {epochToDateString(Number(checkAuthenticityData.productionDate.toString()))}</p>
               <p>Expiry Date: {epochToDateString(Number(checkAuthenticityData.expiryDate.toString()))}</p>
