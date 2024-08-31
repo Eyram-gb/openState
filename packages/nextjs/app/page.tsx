@@ -1,13 +1,38 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { NextPage } from "next";
 import { useAccount } from "wagmi";
 import { BugAntIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { Address } from "~~/components/scaffold-eth";
+import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
+import { notification } from "~~/utils/scaffold-eth";
 
 const Home: NextPage = () => {
+  const [productId, setProductId] = useState("");
+  const [checkAuthenticity, setCheckAuthenticity] = useState(false);
   const { address: connectedAddress } = useAccount();
+
+  const {
+    data: checkAuthenticityData,
+    error: checkAuthenticityError,
+    isError: isCheckAuthenticityError,
+    isLoading: isCheckingAuthenticity,
+    refetch: refetchCheckAuthenticity,
+  } = useScaffoldReadContract({
+    contractName: "OpenState",
+    functionName: "checkAuthenticity",
+    args: [checkAuthenticity ? productId : undefined],
+  });
+
+  console.log(checkAuthenticityData);
+
+  useEffect(() => {
+    if (isCheckAuthenticityError) {
+      notification.error(checkAuthenticityError?.message || "Something went wrong");
+    }
+  }, [checkAuthenticityError?.message, isCheckAuthenticityError]);
 
   return (
     <>
@@ -15,28 +40,43 @@ const Home: NextPage = () => {
         <div className="px-5">
           <h1 className="text-center">
             <span className="block text-2xl mb-2">Welcome to</span>
-            <span className="block text-4xl font-bold">Scaffold-ETH 2</span>
+            <span className="block text-4xl font-bold">Open State</span>
           </h1>
-          <div className="flex justify-center items-center space-x-2 flex-col sm:flex-row">
+          {/* <div className="flex justify-center items-center space-x-2 flex-col sm:flex-row">
             <p className="my-2 font-medium">Connected Address:</p>
             <Address address={connectedAddress} />
+          </div> */}
+          <p className="text-center text-lg">Enter your product ID to get started.</p>
+          <div className="flex flex-col gap-5 w-full">
+            <input
+              type="text"
+              className="input input-bordered w-full max-w-md"
+              value={productId}
+              onChange={e => setProductId(e.target.value)}
+            />
+            <button
+              className="btn btn-primary"
+              onClick={() => {
+                if (checkAuthenticity) {
+                  refetchCheckAuthenticity();
+                } else {
+                  setCheckAuthenticity(true);
+                }
+              }}
+              disabled={isCheckingAuthenticity}
+            >
+              {isCheckingAuthenticity ? "Loading..." : "Check"}
+            </button>
           </div>
-          <p className="text-center text-lg">
-            Get started by editing{" "}
-            <code className="italic bg-base-300 text-base font-bold max-w-full break-words break-all inline-block">
-              packages/nextjs/app/page.tsx
-            </code>
-          </p>
-          <p className="text-center text-lg">
-            Edit your smart contract{" "}
-            <code className="italic bg-base-300 text-base font-bold max-w-full break-words break-all inline-block">
-              YourContract.sol
-            </code>{" "}
-            in{" "}
-            <code className="italic bg-base-300 text-base font-bold max-w-full break-words break-all inline-block">
-              packages/hardhat/contracts
-            </code>
-          </p>
+          {checkAuthenticityData?.name && (
+            <div className="flex flex-col bg-base-100 px-10 py-10 text-center items-center max-w-lg rounded-3x overflow-auto my-5l">
+              <p>Name: {checkAuthenticityData.name}</p>
+              <p>Production Date: {epochToDateString(Number(checkAuthenticityData.productionDate.toString()))}</p>
+              <p>Expiry Date: {epochToDateString(Number(checkAuthenticityData.expiryDate.toString()))}</p>
+              <p>Product Hash: {checkAuthenticityData.productHash}</p>
+              <p>Notes: {checkAuthenticityData.notes}</p>
+            </div>
+          )}
         </div>
 
         <div className="flex-grow bg-base-300 w-full mt-16 px-8 py-12">
@@ -69,3 +109,16 @@ const Home: NextPage = () => {
 };
 
 export default Home;
+
+function epochToDateString(epochTime: number) {
+  const date = new Date(epochTime * 1000); // Multiply by 1000 to get milliseconds
+
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, "0"); // Pad month to 2 digits
+  const day = date.getDate().toString().padStart(2, "0");
+  const hours = date.getHours().toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  const seconds = date.getSeconds().toString().padStart(2, "0");
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
