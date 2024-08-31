@@ -1,0 +1,35 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "contracts/OpenState.sol": {
+      "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\ncontract OpenState {\n\tstruct Product {\n\t\tstring name;\n\t\tuint256 productionDate;\n\t\tuint256 expiryDate;\n\t\tbytes32 productHash;\n\t\tstring notes;\n\t}\n\n\tmapping(bytes32 => Product) private products;\n\taddress public owner;\n\tmapping(address => bool) private moderators;\n\tstring public manufacturer; // Store the manufacturer's name\n\n\tevent ProductRegistered(Product product);\n\tevent ProductNotesUpdated(bytes32 productHash, string notes);\n\tevent ModeratorUpdated(address moderator, bool state);\n\tevent ManufacturerUpdated(string newManufacturer);\n\n\tconstructor(string memory _manufacturer) {\n\t\towner = msg.sender; // The deployer of the contract is the initial owner\n\t\tmanufacturer = _manufacturer; // Set the manufacturer's name during contract deployment\n\t}\n\n\tmodifier onlyOwner() {\n\t\trequire(msg.sender == owner, \"Caller is not the owner\");\n\t\t_;\n\t}\n\n\tmodifier onlyOwnerOrModerator() {\n\t\trequire(\n\t\t\tmsg.sender == owner || moderators[msg.sender] == true,\n\t\t\t\"Caller is not authorized\"\n\t\t);\n\t\t_;\n\t}\n\n\tfunction updateModerator(address _moderator, bool _state) public onlyOwner {\n\t\tmoderators[_moderator] = _state;\n\t\temit ModeratorUpdated(_moderator, _state);\n\t}\n\n\t// Update the manufacturer's name (onlyOwner)\n\tfunction updateManufacturer(\n\t\tstring memory _newManufacturer\n\t) public onlyOwner {\n\t\tmanufacturer = _newManufacturer;\n\t\temit ManufacturerUpdated(_newManufacturer);\n\t}\n\n\t// Register a product with its details (onlyOwnerOrModerator)\n\tfunction registerProduct(\n\t\tstring memory _name,\n\t\tuint256 _productionDate,\n\t\tuint256 _expiryDate,\n\t\tbytes32 _productHash,\n\t\tstring memory _notes\n\t) public onlyOwnerOrModerator {\n\t\tproducts[_productHash] = Product({\n\t\t\tname: _name,\n\t\t\tproductionDate: _productionDate,\n\t\t\texpiryDate: _expiryDate,\n\t\t\tproductHash: _productHash,\n\t\t\tnotes: _notes\n\t\t});\n\n\t\temit ProductRegistered(products[_productHash]);\n\t}\n\n\t// Update the notes for a product (onlyOwnerOrModerator)\n\tfunction updateProductNotes(\n\t\tstring memory _productID,\n\t\tstring memory _notes\n\t) public onlyOwnerOrModerator {\n\t\tbytes32 productHash = keccak256(abi.encodePacked(_productID));\n\t\trequire(\n\t\t\tbytes(products[productHash].name).length != 0,\n\t\t\t\"Product does not exist.\"\n\t\t);\n\n\t\tproducts[productHash].notes = _notes;\n\n\t\temit ProductNotesUpdated(productHash, _notes);\n\t}\n\n\t// Check authenticity directly by comparing input hash to stored hash\n\tfunction checkAuthenticity(\n\t\tstring memory _productID\n\t) public view returns (Product memory) {\n\t\tbytes32 inputHash = keccak256(abi.encodePacked(_productID));\n\t\tProduct memory product = products[inputHash];\n\n\t\t// If the product doesn't exist or is not authentic, revert\n\t\trequire(bytes(product.name).length != 0, \"Product does not exist.\");\n\n\t\treturn product;\n\t}\n\n\tfunction getHash(string memory _productID) public pure returns (bytes32) {\n\t\treturn keccak256(abi.encodePacked(_productID));\n\t}\n\n\t// Transfer ownership of the contract to a new owner\n\tfunction transferOwnership(address newOwner) public onlyOwner {\n\t\trequire(newOwner != address(0), \"New owner is the zero address\");\n\t\towner = newOwner;\n\t}\n}"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "runs": 200
+    },
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout",
+          "evm.gasEstimates"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  }
+}
